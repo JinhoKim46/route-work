@@ -1,4 +1,4 @@
-# agent-skills
+# route-work
 
 **route-work** is a single entry point for coding work in Claude Code and other agents that read `SKILL.md` files. Describe what you want, and it sizes the request (Trivial → Small → Medium → Large → Fog) and runs only the planning, building and review steps that size needs, driving [Matt Pocock's skills](https://github.com/mattpocock/skills) (grilling, spec, tickets, tdd, code-review, retro) through GitHub issues and pull requests. Every route ends in a verified, reviewed PR.
 
@@ -21,16 +21,16 @@ route-work makes that choice for you. It looks at the code a request touches, pi
 ```bash
 claude plugin marketplace add mattpocock/skills
 claude plugin install mattpocock-skills@mattpocock
-claude plugin marketplace add JinhoKim46/agent-skills
-claude plugin install agent-skills@jinho
+claude plugin marketplace add JinhoKim46/route-work
+claude plugin install route-work@jinho
 ```
 
-Update with `claude plugin update agent-skills@jinho`. If you use several Claude config directories, run the commands once per directory with `CLAUDE_CONFIG_DIR=<dir>` set.
+Update with `claude plugin update route-work@jinho`. If you use several Claude config directories, run the commands once per directory with `CLAUDE_CONFIG_DIR=<dir>` set.
 
 ### With the `skills` CLI (any agent)
 
 ```bash
-npx skills add JinhoKim46/agent-skills -g
+npx skills add JinhoKim46/route-work -g
 ```
 
 Skills load at session start, so open a new session after installing or updating.
