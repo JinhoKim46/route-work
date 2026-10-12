@@ -7,7 +7,7 @@
   "description": "Jinho's agent skills for Claude Code: route-work.",
   "plugins": [
     {
-      "name": "agent-skills",
+      "name": "route-work",
       "source": "./",
       "description": "route-work: one entry point that sizes a coding request and drives Matt Pocock's skills (grill, spec, tickets, tdd, code-review, retro) through GitHub issues and PRs.",
       "category": "engineering",
