@@ -21,7 +21,7 @@ Look before judging: an `Explore` sub-agent or a quick grep shows which modules,
 | Size | Signals | Plan | Issue | Review |
 |---|---|---|---|---|
 | **Trivial** | The request decides everything: a typo, dictated text, an obvious one-line fix. | None. | None. | Self-check. |
-| **Small** | One session, a few open decisions (behaviour, wording, defaults), no change to schema, external/model API calls, auth/security, money/limits or public interfaces. | `grilling`, or `grill-with-docs` (*read*) when a decision deserves an ADR or glossary entry. | None; decisions go in the PR body. | Self-check. |
+| **Small** | One session, a few open decisions (behaviour, wording, defaults), no change to schema, external/model API calls, auth/security, money/limits or public interfaces. | `grilling`, or `grill-with-docs` (*read*) when a decision deserves an ADR or glossary entry. | None; decisions (the user's and the agent-decided ones) go in the PR body. | Self-check. |
 | **Medium** | One session's build, but it touches schema, an external/model call or prompt, security, cost/limits, a public interface, or several screens. A reviewer will need the decisions written down. | `grill-with-docs` → `to-spec` (*read*). | `to-spec` publishes the spec as one issue; the PR closes it. | `code-review`. |
 | **Large** | More than one context window, or parts that can land independently. | `grill-with-docs` → `to-spec` → `to-tickets` (*read*) → run the ticket graph ([`LARGE.md`](LARGE.md)). | Spec issue = parent; one sub-issue per ticket with native `blocked by` links; one PR per ticket closes it. | `code-review` per ticket PR; `retro` offered at the end. |
 | **Fog** | The destination is unclear, or decisions depend on each other too deeply to settle in one sitting. | `wayfinder` (*read*) → then `to-spec` → `to-tickets` → build. | A `wayfinder:map` issue with decision tickets as children ([`ISSUES.md`](ISSUES.md#fog)). | As Large. |
@@ -54,7 +54,7 @@ For a bug whose cause is unknown, the size waits for the cause:
 
 > Size: after diagnosis (cause unknown; setup: done). Next: diagnosing-bugs, stopping at a confirmed reproduction.
 
-Then go. Every routed skill has its own human gate (grilling waits for a shared understanding, `to-spec` checks seams, `to-tickets` has the breakdown approved, `wayfinder` resolves one ticket per session, setup confirms each section), and that approval also covers publishing the issues and files it produces.
+Then go. Every routed skill has its own human gate (grilling asks the user only the critical decisions, lists the rest as agent decisions they can object to, and waits for their confirmation of the shared understanding; `to-spec` checks seams, `to-tickets` has the breakdown approved, `wayfinder` resolves one ticket per session, setup confirms each section), and that approval also covers publishing the issues and files it produces.
 
 ## At every phase boundary
 
@@ -74,7 +74,7 @@ Keep grilling → spec → tickets in **one unbroken context**.
 
 The build is done by this session, by `Agent` with `subagent_type: "general-purpose"`, or by a `Workflow` when the user has opted into multi-agent orchestration. From **Medium** up, build with `tdd` at the seams `to-spec` already agreed with the user, so `tdd`'s own seam question is already answered. For **Trivial / Small**, the `tdd` skill is more process than the change needs: write the test first in the project's usual style when behaviour changes (a bug, a rule, a calculation); text or style changes need no new test.
 
-- **Trivial / Small / Medium**: build here, or hand the spec issue to one general-purpose agent. A brief for an agent names the exact input, the expected result and the acceptance criteria.
+- **Trivial / Small / Medium**: build here, or hand the spec issue to one general-purpose agent with `model: "sonnet"` (see Models). A brief for an agent names the exact input, the expected result and the acceptance criteria.
 - **Large**: one fresh context, branch and PR per ticket ([`LARGE.md`](LARGE.md)).
 
 Each change: its own branch and worktree (the project's worktree rule if it has one; otherwise `Agent` with `isolation: "worktree"`) → tests first → the project's lint and test commands, reading the output → review → a PR.
@@ -83,9 +83,37 @@ Each change: its own branch and worktree (the project's worktree rule if it has 
 
 **Review (Medium and up):** run `code-review` against the default branch (`origin/main`) after verification and before merging. Its **Spec** axis checks the diff against the issue, its **Standards** axis against the repo's documented rules. It only finds `CODING_STANDARDS.md` / `CONTRIBUTING.md` by itself, so when the repo has neither, pass `CLAUDE.md` (or `AGENTS.md`) as the standards source. Fix every missing or wrong requirement; fix or consciously decline (one line in the PR) each standards finding. Re-run verification after fixes.
 
-**PR body**: the project's template, or the `pr` skill's shape, or **Summary** + **Test plan**; then one `Closes #N` line per issue it finishes, each on its own line.
+**PR body**: the project's template, or the `pr` skill's shape, or **Summary** + **Test plan**; then one `Closes #N` line per issue it finishes, each on its own line. When grilling settled decisions on the agents' own, list them under **Decisions (agent-decided)**, one line each with its reason, so the reviewer can object to any of them.
 
 **Merge** only as the project's `CLAUDE.md` allows (e.g. "squash-merge when CI is green"). When it says nothing, stop at an open PR and ask the user to review.
+
+## Models
+
+Set `model` on every `Agent` call and every `agent()` in a `Workflow`. Never leave it to inherit the session model (Opus). The session (Opus) keeps judgment and verification.
+
+| Route / step | Model | Why |
+|---|---|---|
+| Locate modules or symbols (Explore) | Haiku | Mechanical search |
+| Multi-file search with a summary | Sonnet | Standard work |
+| Sizing (Trivial to Fog) | Opus | The sizing signals are the routing decision |
+| Trivial change | Opus, direct | Delegating a one-line change costs more |
+| grilling, grill-with-docs, to-spec, codebase-design | Opus | Design trade-offs and decisions |
+| to-tickets, wayfinder, retro, writing-for-agents | Opus | Breakdown, dependency and environment judgment |
+| Build from an agreed spec, tests | Sonnet | Well-specified change |
+| Lint, test run, `git diff --check` | Haiku | Mechanical, read the output |
+| PR body draft | Sonnet, checked by Opus | The decision list must be accurate |
+| code-review, ordinary scope | Sonnet runs, Opus verifies findings | Standard review, Opus adopts findings |
+| code-review, auth, permissions, personal data, money, schema | Opus | Security and money need deep reasoning |
+| Research legwork | Sonnet collects, Opus concludes | Collection is mechanical |
+| Bug reproduction test | Sonnet | Cause is confirmed before the test is written |
+| Root cause across systems | Opus | Deep reasoning |
+| Bug fix | Sonnet (Opus when security-related) | Failing test specifies the change |
+| prototype | Sonnet | Throwaway code |
+| handoff | Sonnet | State summary |
+| wait-what | Opus | Diagnosing why a message did not land |
+| to-questionnaire, wizard | Sonnet drafts, Opus reviews | Questions for the human must be right |
+
+If a Sonnet or Haiku result is wrong, thin or unsure, escalate one tier. Do not retry the same model.
 
 ## Finish
 
